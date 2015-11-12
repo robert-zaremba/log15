@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -22,6 +21,14 @@ const (
 
 type Format interface {
 	Format(r *Record) []byte
+}
+
+// FormatF is a corresponding function for Format interface
+type FormatF func(*Record) []byte
+
+// Format implements Format interface
+func (f FormatF) Format(r *Record) []byte {
+	return f(r)
 }
 
 // FormatFunc returns a new Format object which uses
@@ -46,8 +53,8 @@ func (f formatFunc) Format(r *Record) []byte {
 //
 //     [May 16 20:58:45] [DBUG] remove route ns=haproxy addr=127.0.0.1:50002
 //
-func TerminalFormat() Format {
-	return FormatFunc(func(r *Record) []byte {
+func TerminalFormat() FormatF {
+	return func(r *Record) []byte {
 		var color tty.ECode
 		switch r.Lvl {
 		case LvlCrit:
@@ -63,7 +70,7 @@ func TerminalFormat() Format {
 		}
 
 		b := &bytes.Buffer{}
-		lvl := strings.ToUpper(r.Lvl.String())
+		lvl := r.Lvl.StringUP()
 		if color > 0 {
 			fmt.Fprint(b, tty.AnsiEscapeS(color, lvl), "[", r.Time.Format(termTimeFormat), "] ", r.Msg)
 		} else {
@@ -76,26 +83,26 @@ func TerminalFormat() Format {
 		}
 
 		// print the keys logfmt style
-		logfmt(b, r.Ctx, color)
+		Logfmt(b, r.Ctx, color)
 		return b.Bytes()
-	})
+	}
 }
 
-// LogfmtFormat prints records in logfmt format, an easy machine-parseable but human-readable
-// format for key/value pairs.
-//
-// For more details see: http://godoc.org/github.com/kr/logfmt
-//
-func LogfmtFormat() Format {
-	return FormatFunc(func(r *Record) []byte {
+// LogfmtFormat construct records and prints them in using Logfmt.
+func LogfmtFormat() FormatF {
+	return func(r *Record) []byte {
 		common := []interface{}{r.KeyNames.Time, r.Time, r.KeyNames.Lvl, r.Lvl, r.KeyNames.Msg, r.Msg}
 		buf := &bytes.Buffer{}
-		logfmt(buf, append(common, r.Ctx...), 0)
+		Logfmt(buf, append(common, r.Ctx...), 0)
 		return buf.Bytes()
-	})
+	}
 }
 
-func logfmt(buf *bytes.Buffer, ctx []interface{}, color tty.ECode) {
+// Logfmt prints records in logfmt format,
+// an easy machine-parseable but human-readable format for key/value pairs.
+//
+// For more details see: http://godoc.org/github.com/kr/logfmt
+func Logfmt(buf *bytes.Buffer, ctx []interface{}, color tty.ECode) {
 	for i := 0; i < len(ctx); i += 2 {
 		if i != 0 {
 			buf.WriteByte(' ')
@@ -129,7 +136,7 @@ func JsonFormat() Format {
 // JsonFormatEx formats log records as JSON objects. If pretty is true,
 // records will be pretty-printed. If lineSeparated is true, records
 // will be logged with a new line between each record.
-func JsonFormatEx(pretty, lineSeparated bool) Format {
+func JsonFormatEx(pretty, lineSeparated bool) FormatF {
 	jsonMarshal := json.Marshal
 	if pretty {
 		jsonMarshal = func(v interface{}) ([]byte, error) {
@@ -137,7 +144,7 @@ func JsonFormatEx(pretty, lineSeparated bool) Format {
 		}
 	}
 
-	return FormatFunc(func(r *Record) []byte {
+	return func(r *Record) []byte {
 		props := make(map[string]interface{})
 
 		props[r.KeyNames.Time] = r.Time
@@ -165,7 +172,7 @@ func JsonFormatEx(pretty, lineSeparated bool) Format {
 		}
 
 		return b
-	})
+	}
 }
 
 func formatShared(value interface{}) (result interface{}) {

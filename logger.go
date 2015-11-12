@@ -2,6 +2,7 @@ package log15
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-stack/stack"
@@ -20,29 +21,32 @@ const (
 	LvlWarn
 	LvlInfo
 	LvlDebug
+	LvlTrace
 )
+
+var levelsStr = [6]string{"criti", "error", "warn ", "info ", "debug", "trace"}
+var levelsStrUP = [6]string{"CRITI", "ERROR", "WARN ", "INFO ", "DEBUG", "TRACE"}
 
 // Returns the name of a Lvl
 func (l Lvl) String() string {
-	switch l {
-	case LvlDebug:
-		return "dbug"
-	case LvlInfo:
-		return "info"
-	case LvlWarn:
-		return "warn"
-	case LvlError:
-		return "eror"
-	case LvlCrit:
-		return "crit"
-	default:
-		panic("bad level")
+	if l >= 0 && l <= 4 {
+		return levelsStr[l]
 	}
+	return "unknown"
+}
+
+// StringUP returns the uppecrase name of a Lvl
+func (l Lvl) StringUP() string {
+	if l >= 0 && l <= 4 {
+		return levelsStrUP[l]
+	}
+	return "unknown"
 }
 
 // Returns the appropriate Lvl from a string name.
 // Useful for parsing command line args and configuration files.
 func LvlFromString(lvlString string) (Lvl, error) {
+	lvlString = strings.ToLower(lvlString)
 	switch lvlString {
 	case "debug", "dbug":
 		return LvlDebug, nil
@@ -87,11 +91,15 @@ type Logger interface {
 	SetHandler(h Handler)
 
 	// Log a message at the given level with context key/value pairs
+	Trace(msg string, ctx ...interface{})
 	Debug(msg string, ctx ...interface{})
 	Info(msg string, ctx ...interface{})
 	Warn(msg string, ctx ...interface{})
 	Error(msg string, ctx ...interface{})
 	Crit(msg string, ctx ...interface{})
+
+	// Fatal is a Crit log followed by panic
+	Fatal(msg string, ctx ...interface{})
 }
 
 type logger struct {
@@ -128,6 +136,10 @@ func newContext(prefix []interface{}, suffix []interface{}) []interface{} {
 	return newCtx
 }
 
+func (l *logger) Trace(msg string, ctx ...interface{}) {
+	l.write(msg, LvlTrace, ctx)
+}
+
 func (l *logger) Debug(msg string, ctx ...interface{}) {
 	l.write(msg, LvlDebug, ctx)
 }
@@ -148,6 +160,11 @@ func (l *logger) Crit(msg string, ctx ...interface{}) {
 	l.write(msg, LvlCrit, ctx)
 }
 
+func (l *logger) Fatal(msg string, ctx ...interface{}) {
+	l.write(msg, LvlCrit, ctx)
+	panic("FATAL. " + msg)
+}
+
 func (l *logger) GetHandler() Handler {
 	return l.h.Get()
 }
@@ -163,16 +180,6 @@ func normalize(ctx []interface{}) []interface{} {
 			ctx = ctxMap.toArray()
 		}
 	}
-
-	// ctx needs to be even because it's a series of key/value pairs
-	// no one wants to check for errors on logging functions,
-	// so instead of erroring on bad input, we'll just make sure
-	// that things are the right length and users can fix bugs
-	// when they see the output looks wrong
-	if len(ctx)%2 != 0 {
-		ctx = append(ctx, nil, errorKey, "Normalized odd number of arguments by adding nil")
-	}
-
 	return ctx
 }
 
