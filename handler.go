@@ -23,12 +23,12 @@ type Handler interface {
 // FuncHandler returns a Handler that logs records with the given
 // function.
 func FuncHandler(fn func(r *Record) error) Handler {
-	return funcHandler(fn)
+	return FuncHandlerT(fn)
 }
 
-type funcHandler func(r *Record) error
+type FuncHandlerT func(r *Record) error
 
-func (h funcHandler) Log(r *Record) error {
+func (h FuncHandlerT) Log(r *Record) error {
 	return h(r)
 }
 

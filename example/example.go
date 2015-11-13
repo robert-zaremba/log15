@@ -5,6 +5,7 @@ import (
 )
 
 func main() {
+	log15.Trace("page accessed", "path", "/a/bbb/c")
 	log15.Debug("page accessed", "path", "/a/bbb/c")
 	log15.Info("page accessed", "path", "/a/bbb/c")
 	log15.Warn("page accessed", "path", "/a/bbb/c")

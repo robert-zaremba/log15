@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/robert-zaremba/go-tty"
@@ -71,7 +70,7 @@ func TerminalFormat() FormatF {
 		}
 
 		b := &bytes.Buffer{}
-		lvl := strings.ToUpper(r.Lvl.String())
+		lvl := r.Lvl.StringUP()
 		if color > 0 {
 			fmt.Fprint(b, tty.AnsiEscapeS(color, lvl), "[", r.Time.Format(termTimeFormat), "] ", r.Msg)
 		} else {

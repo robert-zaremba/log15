@@ -3,6 +3,7 @@ package log15
 import (
 	"fmt"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -11,37 +12,42 @@ const lvlKey = "lvl"
 const msgKey = "msg"
 const errorKey = "LOG15_ERROR"
 
+// Lvl is a log level type
 type Lvl int
 
+// Values of Lvl type
 const (
 	LvlCrit Lvl = iota
 	LvlError
 	LvlWarn
 	LvlInfo
 	LvlDebug
+	LvlTrace
 )
 
-// Returns the name of a Lvl
+var levelsStr = [6]string{"criti", "error", "warn ", "info ", "debug", "trace"}
+var levelsStrUP = [6]string{"CRITI", "ERROR", "WARN ", "INFO ", "DEBUG", "TRACE"}
+
+// String returns the name of a Lvl
 func (l Lvl) String() string {
-	switch l {
-	case LvlDebug:
-		return "dbug"
-	case LvlInfo:
-		return "info"
-	case LvlWarn:
-		return "warn"
-	case LvlError:
-		return "eror"
-	case LvlCrit:
-		return "crit"
-	default:
-		panic("bad level")
+	if l >= 0 && l <= 4 {
+		return levelsStr[l]
 	}
+	return "unknown"
 }
 
-// Returns the appropriate Lvl from a string name.
+// StringUP returns the uppecrase name of a Lvl
+func (l Lvl) StringUP() string {
+	if l >= 0 && l <= 4 {
+		return levelsStrUP[l]
+	}
+	return "unknown"
+}
+
+// LvlFromString Returns the appropriate Lvl from a string name.
 // Useful for parsing command line args and configuration files.
 func LvlFromString(lvlString string) (Lvl, error) {
+	lvlString = strings.ToLower(lvlString)
 	switch lvlString {
 	case "debug", "dbug":
 		return LvlDebug, nil
@@ -83,11 +89,15 @@ type Logger interface {
 	SetHandler(h Handler)
 
 	// Log a message at the given level with context key/value pairs
+	Trace(msg string, ctx ...interface{})
 	Debug(msg string, ctx ...interface{})
 	Info(msg string, ctx ...interface{})
 	Warn(msg string, ctx ...interface{})
 	Error(msg string, ctx ...interface{})
 	Crit(msg string, ctx ...interface{})
+
+	// Fatal is a Crit log followed by panic
+	Fatal(msg string, ctx ...interface{})
 }
 
 type logger struct {
@@ -125,6 +135,10 @@ func newContext(prefix []interface{}, suffix []interface{}) []interface{} {
 	return newCtx
 }
 
+func (l *logger) Trace(msg string, ctx ...interface{}) {
+	l.write(msg, LvlTrace, ctx)
+}
+
 func (l *logger) Debug(msg string, ctx ...interface{}) {
 	l.write(msg, LvlDebug, ctx)
 }
@@ -143,6 +157,11 @@ func (l *logger) Error(msg string, ctx ...interface{}) {
 
 func (l *logger) Crit(msg string, ctx ...interface{}) {
 	l.write(msg, LvlCrit, ctx)
+}
+
+func (l *logger) Fatal(msg string, ctx ...interface{}) {
+	l.write(msg, LvlCrit, ctx)
+	panic("FATAL. " + msg)
 }
 
 func (l *logger) SetHandler(h Handler) {
