@@ -1,7 +1,8 @@
 package main
 
 import (
-	"gopkg.in/inconshreveable/log15.v2"
+	// "gopkg.in/inconshreveable/log15.v2"
+	"github.com/AgFlow/log15"
 )
 
 func main() {

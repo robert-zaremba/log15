@@ -176,15 +176,6 @@ func normalize(ctx []interface{}) []interface{} {
 		}
 	}
 
-	// ctx needs to be even because it's a series of key/value pairs
-	// no one wants to check for errors on logging functions,
-	// so instead of erroring on bad input, we'll just make sure
-	// that things are the right length and users can fix bugs
-	// when they see the output looks wrong
-	if len(ctx)%2 != 0 {
-		ctx = append(ctx, nil, errorKey, "Normalized odd number of arguments by adding nil")
-	}
-
 	return ctx
 }
 
