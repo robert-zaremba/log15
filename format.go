@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
+
+	"github.com/robert-zaremba/go-tty"
 )
 
 const (
@@ -21,6 +22,14 @@ const (
 // Format  is the interface implemented by StreamHandler formatters.
 type Format interface {
 	Format(r *Record) []byte
+}
+
+// FormatF is a corresponding function for Format interface
+type FormatF func(*Record) []byte
+
+// Format implements Format interface
+func (f FormatF) Format(r *Record) []byte {
+	return f(r)
 }
 
 // FormatFunc returns a new Format object which uses
@@ -45,26 +54,26 @@ func (f formatFunc) Format(r *Record) []byte {
 //
 //     [May 16 20:58:45] [DBUG] remove route ns=haproxy addr=127.0.0.1:50002
 //
-func TerminalFormat() Format {
-	return FormatFunc(func(r *Record) []byte {
-		var color = 0
+func TerminalFormat() FormatF {
+	return func(r *Record) []byte {
+		var color tty.ECode
 		switch r.Lvl {
 		case LvlCrit:
-			color = 35
+			color = tty.MAGENTA
 		case LvlError:
-			color = 31
+			color = tty.RED
 		case LvlWarn:
-			color = 33
+			color = tty.YELLOW
 		case LvlInfo:
-			color = 32
+			color = tty.GREEN
 		case LvlDebug:
-			color = 36
+			color = tty.CYAN
 		}
 
 		b := &bytes.Buffer{}
-		lvl := strings.ToUpper(r.Lvl.String())
+		lvl := r.Lvl.StringUP()
 		if color > 0 {
-			fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m[%s] %s ", color, lvl, r.Time.Format(termTimeFormat), r.Msg)
+			fmt.Fprint(b, tty.AnsiEscapeS(color, lvl), "[", r.Time.Format(termTimeFormat), "] ", r.Msg)
 		} else {
 			fmt.Fprintf(b, "[%s] [%s] %s ", lvl, r.Time.Format(termTimeFormat), r.Msg)
 		}
@@ -75,26 +84,26 @@ func TerminalFormat() Format {
 		}
 
 		// print the keys logfmt style
-		logfmt(b, r.Ctx, color)
+		Logfmt(b, r.Ctx, color)
 		return b.Bytes()
-	})
+	}
 }
 
-// LogfmtFormat prints records in logfmt format, an easy machine-parseable but human-readable
-// format for key/value pairs.
-//
-// For more details see: http://godoc.org/github.com/kr/logfmt
-//
-func LogfmtFormat() Format {
-	return FormatFunc(func(r *Record) []byte {
+// LogfmtFormat construct records and prints them in using Logfmt.
+func LogfmtFormat() FormatF {
+	return func(r *Record) []byte {
 		common := []interface{}{r.KeyNames.Time, r.Time, r.KeyNames.Lvl, r.Lvl, r.KeyNames.Msg, r.Msg}
 		buf := &bytes.Buffer{}
-		logfmt(buf, append(common, r.Ctx...), 0)
+		Logfmt(buf, append(common, r.Ctx...), 0)
 		return buf.Bytes()
-	})
+	}
 }
 
-func logfmt(buf *bytes.Buffer, ctx []interface{}, color int) {
+// Logfmt prints records in logfmt format,
+// an easy machine-parseable but human-readable format for key/value pairs.
+//
+// For more details see: http://godoc.org/github.com/kr/logfmt
+func Logfmt(buf *bytes.Buffer, ctx []interface{}, color tty.ECode) {
 	for i := 0; i < len(ctx); i += 2 {
 		if i != 0 {
 			buf.WriteByte(' ')
@@ -108,7 +117,7 @@ func logfmt(buf *bytes.Buffer, ctx []interface{}, color int) {
 
 		// XXX: we should probably check that all of your key bytes aren't invalid
 		if color > 0 {
-			fmt.Fprintf(buf, "\x1b[%dm%s\x1b[0m=%s", color, k, v)
+			fmt.Fprint(buf, tty.AnsiEscapeS(color, k), "=", v)
 		} else {
 			buf.WriteString(k)
 			buf.WriteByte('=')
@@ -128,7 +137,7 @@ func JsonFormat() Format {
 // JsonFormatEx formats log records as JSON objects. If pretty is true,
 // records will be pretty-printed. If lineSeparated is true, records
 // will be logged with a new line between each record.
-func JsonFormatEx(pretty, lineSeparated bool) Format {
+func JsonFormatEx(pretty, lineSeparated bool) FormatF {
 	jsonMarshal := json.Marshal
 	if pretty {
 		jsonMarshal = func(v interface{}) ([]byte, error) {
@@ -136,7 +145,7 @@ func JsonFormatEx(pretty, lineSeparated bool) Format {
 		}
 	}
 
-	return FormatFunc(func(r *Record) []byte {
+	return func(r *Record) []byte {
 		props := make(map[string]interface{})
 
 		props[r.KeyNames.Time] = r.Time
@@ -164,7 +173,7 @@ func JsonFormatEx(pretty, lineSeparated bool) Format {
 		}
 
 		return b
-	})
+	}
 }
 
 func formatShared(value interface{}) (result interface{}) {

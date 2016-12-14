@@ -24,7 +24,7 @@ func init() {
 	}
 
 	root = &logger{[]interface{}{}, new(swapHandler)}
-	root.SetHandler(StdoutHandler)
+	root.SetHandler(LvlFilterHandler(LvlError, StdoutHandler))
 }
 
 // New returns a new logger with the given context.
@@ -41,6 +41,11 @@ func Root() Logger {
 // The following functions bypass the exported logger methods (logger.Debug,
 // etc.) to keep the call depth the same for all paths to logger.write so
 // runtime.Caller(2) always refers to the call site in client code.
+
+// Trace is a convenient alias for Root().Debug
+func Trace(msg string, ctx ...interface{}) {
+	root.write(msg, LvlTrace, ctx)
+}
 
 // Debug is a convenient alias for Root().Debug
 func Debug(msg string, ctx ...interface{}) {
@@ -65,4 +70,10 @@ func Error(msg string, ctx ...interface{}) {
 // Crit is a convenient alias for Root().Crit
 func Crit(msg string, ctx ...interface{}) {
 	root.write(msg, LvlCrit, ctx)
+}
+
+// Fatal is a convenient alias for Root().Fatal
+func Fatal(msg string, ctx ...interface{}) {
+	root.write(msg, LvlCrit, ctx)
+	panic("FATAL. " + msg)
 }

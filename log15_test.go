@@ -112,7 +112,7 @@ func TestJson(t *testing.T) {
 	validate("msg", "some message")
 	validate("x", float64(1)) // all numbers are floats in JSON land
 	validate("y", 3.2)
-	validate("lvl", "eror")
+	validate("lvl", "error")
 }
 
 type testtype struct {
@@ -134,7 +134,7 @@ func TestLogfmt(t *testing.T) {
 
 	// skip timestamp in comparison
 	got := buf.Bytes()[27:buf.Len()]
-	expected := []byte(`lvl=eror msg="some message" x=1 y=3.200 equals="=" quote="\"" nil=nil carriage_return="bang\rfoo" tab="bar\tbaz" newline="foo\nbar"` + "\n")
+	expected := []byte(`lvl=error msg="some message" x=1 y=3.200 equals="=" quote="\"" nil=nil carriage_return="bang\rfoo" tab="bar\tbaz" newline="foo\nbar"` + "\n")
 	if !bytes.Equal(got, expected) {
 		t.Fatalf("Got %s, expected %s", got, expected)
 	}
@@ -265,9 +265,9 @@ func TestNetHandler(t *testing.T) {
 		}
 
 		got := s[27:]
-		expected := "lvl=info msg=test x=1\n"
+		expected := "lvl=\"info \" msg=test x=1\n"
 		if got != expected {
-			t.Errorf("Got log line %s, expected %s", got, expected)
+			t.Errorf("Got log line %q, expected %s", got, expected)
 		}
 
 		errs <- nil
