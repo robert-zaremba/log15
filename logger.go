@@ -31,7 +31,7 @@ var levelsStrUP = [6]string{"CRITI", "ERROR", "WARN ", "INFO ", "DEBUG", "TRACE"
 
 // Returns the name of a Lvl
 func (l Lvl) String() string {
-	if l >= 0 && l <= 4 {
+	if l >= 0 && l <= 5 {
 		return levelsStr[l]
 	}
 	return "unknown"
@@ -39,7 +39,7 @@ func (l Lvl) String() string {
 
 // StringUP returns the uppecrase name of a Lvl
 func (l Lvl) StringUP() string {
-	if l >= 0 && l <= 4 {
+	if l >= 0 && l <= 5 {
 		return levelsStrUP[l]
 	}
 	return "unknown"

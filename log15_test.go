@@ -134,7 +134,7 @@ func TestLogfmt(t *testing.T) {
 
 	// skip timestamp in comparison
 	got := buf.Bytes()[27:buf.Len()]
-	expected := []byte(`lvl=error msg="some message" x=1 y=3.200 equals="=" quote="\"" nil=nil carriage_return="bang\rfoo" tab="bar\tbaz" newline="foo\nbar"` + "\n")
+	expected := []byte(`lvl=error msg="some message" x=1 y=3.2 equals="=" quote="\"" nil=<nil> carriage_return="bang\rfoo" tab="bar\tbaz" newline="foo\nbar"` + "\n")
 	if !bytes.Equal(got, expected) {
 		t.Fatalf("Got %s, expected %s", got, expected)
 	}
@@ -265,9 +265,9 @@ func TestNetHandler(t *testing.T) {
 		}
 
 		got := s[27:]
-		expected := "lvl=\"info \" msg=test x=1\n"
+		expected := "lvl=info  msg=\"test\" x=1\n"
 		if got != expected {
-			t.Errorf("Got log line %q, expected %s", got, expected)
+			t.Errorf("Got log line %q, expected %q", got, expected)
 		}
 
 		errs <- nil
@@ -407,37 +407,6 @@ func TestInheritHandler(t *testing.T) {
 	child.Info("test")
 	if r.Msg == "test" {
 		t.Fatalf("child handler affected not affected by parent")
-	}
-}
-
-func TestCallerFileHandler(t *testing.T) {
-	t.Parallel()
-
-	l := New()
-	h, r := testHandler()
-	l.SetHandler(CallerFileHandler(h))
-
-	l.Info("baz")
-	_, _, line, _ := runtime.Caller(0)
-
-	if len(r.Ctx) != 2 {
-		t.Fatalf("Expected caller in record context. Got length %d, expected %d", len(r.Ctx), 2)
-	}
-
-	const key = "caller"
-
-	if r.Ctx[0] != key {
-		t.Fatalf("Wrong context key, got %s expected %s", r.Ctx[0], key)
-	}
-
-	s, ok := r.Ctx[1].(string)
-	if !ok {
-		t.Fatalf("Wrong context value type, got %T expected string", r.Ctx[1])
-	}
-
-	exp := fmt.Sprint("log15_test.go:", line-1)
-	if s != exp {
-		t.Fatalf("Wrong context value, got %s expected string matching %s", s, exp)
 	}
 }
 

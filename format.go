@@ -14,9 +14,8 @@ import (
 
 const (
 	timeFormat     = "2006-01-02T15:04:05-0700"
-	termTimeFormat = "01-02|15:04:05"
+	termTimeFormat = " 01-02|15:04:05"
 	floatFormat    = 'f'
-	termMsgJust    = 40
 )
 
 // Format  is the interface implemented by StreamHandler formatters.
@@ -44,51 +43,6 @@ func (f formatFunc) Format(r *Record) []byte {
 	return f(r)
 }
 
-// TerminalFormat formats log records optimized for human readability on
-// a terminal with color-coded level output and terser human friendly timestamp.
-// This format should only be used for interactive programs or while developing.
-//
-//     [TIME] [LEVEL] MESAGE key=value key=value ...
-//
-// Example:
-//
-//     [May 16 20:58:45] [DBUG] remove route ns=haproxy addr=127.0.0.1:50002
-//
-func TerminalFormat() FormatF {
-	return func(r *Record) []byte {
-		var color tty.ECode
-		switch r.Lvl {
-		case LvlCrit:
-			color = tty.MAGENTA
-		case LvlError:
-			color = tty.RED
-		case LvlWarn:
-			color = tty.YELLOW
-		case LvlInfo:
-			color = tty.GREEN
-		case LvlDebug:
-			color = tty.CYAN
-		}
-
-		b := &bytes.Buffer{}
-		lvl := r.Lvl.StringUP()
-		if color > 0 {
-			fmt.Fprint(b, tty.AnsiEscapeS(color, lvl), "[", r.Time.Format(termTimeFormat), "] ", r.Msg)
-		} else {
-			fmt.Fprintf(b, "[%s] [%s] %s ", lvl, r.Time.Format(termTimeFormat), r.Msg)
-		}
-
-		// try to justify the log output for short messages
-		if len(r.Ctx) > 0 && len(r.Msg) < termMsgJust {
-			b.Write(bytes.Repeat([]byte{' '}, termMsgJust-len(r.Msg)))
-		}
-
-		// print the keys logfmt style
-		Logfmt(b, r.Ctx, color)
-		return b.Bytes()
-	}
-}
-
 // LogfmtFormat construct records and prints them in using Logfmt.
 func LogfmtFormat() FormatF {
 	return func(r *Record) []byte {
@@ -104,15 +58,16 @@ func LogfmtFormat() FormatF {
 //
 // For more details see: http://godoc.org/github.com/kr/logfmt
 func Logfmt(buf *bytes.Buffer, ctx []interface{}, color tty.ECode) {
+	var v string
 	for i := 0; i < len(ctx); i += 2 {
 		if i != 0 {
 			buf.WriteByte(' ')
 		}
-
 		k, ok := ctx[i].(string)
-		v := formatLogfmtValue(ctx[i+1])
-		if !ok {
-			k, v = errorKey, formatLogfmtValue(k)
+		if ok {
+			v = FormatLogfmtValue(ctx[i+1])
+		} else {
+			k, v = errorKey, FormatLogfmtValue(k)
 		}
 
 		// XXX: we should probably check that all of your key bytes aren't invalid
@@ -212,32 +167,25 @@ func formatJSONValue(value interface{}) interface{} {
 	}
 }
 
-// formatValue formats a value for serialization
-func formatLogfmtValue(value interface{}) string {
+// FormatLogfmtValue converts value to string
+func FormatLogfmtValue(value interface{}) string {
 	if value == nil {
 		return "nil"
 	}
 
-	if t, ok := value.(time.Time); ok {
-		// Performance optimization: No need for escaping since the provided
-		// timeFormat doesn't have any escape characters, and escaping is
-		// expensive.
-		return t.Format(timeFormat)
-	}
-	value = formatShared(value)
 	switch v := value.(type) {
+	case time.Time:
+		return v.Format(timeFormat)
 	case bool:
 		return strconv.FormatBool(v)
-	case float32:
-		return strconv.FormatFloat(float64(v), floatFormat, 3, 64)
-	case float64:
-		return strconv.FormatFloat(v, floatFormat, 3, 64)
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-		return fmt.Sprintf("%d", value)
+	case int:
+		return strconv.Itoa(v)
+	case uint:
+		return strconv.FormatUint(uint64(v), 10)
 	case string:
-		return escapeString(v)
+		return fmt.Sprintf("%q", v)
 	default:
-		return escapeString(fmt.Sprintf("%+v", value))
+		return fmt.Sprint(v)
 	}
 }
 
@@ -256,7 +204,7 @@ func escapeString(s string) string {
 			needsEscape = true
 		}
 	}
-	if needsEscape == false && needsQuotes == false {
+	if !needsEscape && !needsQuotes {
 		return s
 	}
 	e := stringBufPool.Get().(*bytes.Buffer)
