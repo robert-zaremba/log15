@@ -139,7 +139,7 @@ func logfmt(buf *bytes.Buffer, ctx []interface{}, color tty.ECode) {
 	var errStr string
 	for _, err := range errs {
 		errStr = err.Error()
-		if e, ok := err.(FancyError); ok && e.Inf() {
+		if e, ok := err.(FancyError); ok && !e.IsReq() {
 			_, _ = buf.WriteString(errInfHeader)
 			_, _ = buf.WriteString(errStr)
 			_, _ = buf.WriteString("\nstacktrace:\n")
@@ -152,10 +152,10 @@ func logfmt(buf *bytes.Buffer, ctx []interface{}, color tty.ECode) {
 	}
 }
 
-// FancyError is an enhanced Error type which we can recoginse a type
-// (if it's an Interface type)
+// FancyError is an enhanced Error type - we can check if it's a (user) request like error
+// and call for a stacktrace.
 type FancyError interface {
-	Inf() bool
+	IsReq() bool
 	Stacktrace() *stack.Multi
 }
 
