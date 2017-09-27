@@ -111,6 +111,7 @@ func rollbarHandler(r *log15.Record) error {
 	if err == nil {
 		err = errors.New(r.Msg)
 	}
+
 	if stack != nil {
 		rollbar.ErrorWithStack(lvl, err, stack, fields...)
 	} else {
@@ -142,4 +143,28 @@ func mkStacktrace(caller string, err error, fields []*rollbar.Field) ([]*rollbar
 		}
 	}
 	return fields, stack, fmtError
+}
+
+// ReporterLogger is a reduced logger interface for critical messages
+type ReporterLogger interface {
+	Crit(msg string, ctx ...interface{})
+	Debug(msg string, ctx ...interface{})
+}
+
+// WaitForRollbar is a panic handler that waits for rollbar if rollbar is configured.
+func WaitForRollbar(logger ReporterLogger) {
+	if rollbar.Token == "" {
+		logger.Debug("Rollbar is not configured")
+		return
+	}
+	rollbar.Wait()
+	if err := recover(); err != nil {
+		if rollbar.Token != "" {
+			if _, ok := err.(log15.FatalMessage); !ok { // logger.Fatal are already handled
+				logger.Crit("PANIC. ", err)
+			}
+			rollbar.Wait()
+		}
+		panic(err)
+	}
 }
