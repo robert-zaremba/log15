@@ -154,7 +154,6 @@ type ReporterLogger interface {
 // WaitForRollbar is a panic handler that waits for rollbar if rollbar is configured.
 func WaitForRollbar(logger ReporterLogger) {
 	if rollbar.Token == "" {
-		logger.Debug("Rollbar is not configured")
 		return
 	}
 	rollbar.Wait()
