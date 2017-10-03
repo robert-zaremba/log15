@@ -165,14 +165,14 @@ func (l *logger) Crit(msg string, ctx ...interface{}) {
 
 func (l *logger) Fatal(msg string, ctx ...interface{}) {
 	l.write(msg, LvlCrit, ctx)
-	panic("FATAL. " + FatalMessage(msg))
+	panic(FatalMessage(msg))
 }
 
 // FatalMessage is a wrapper for the message in fatal logging
 type FatalMessage string
 
 func (fm FatalMessage) String() string {
-	return "FATAL! " + string(fm)
+	return string(fm)
 }
 
 func (l *logger) GetHandler() Handler {
