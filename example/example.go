@@ -21,6 +21,7 @@ func main() {
 	h := log15.StreamHandler(os.Stderr, f)
 	h = log15.SyncHandler(h)
 	h = log15.CallerFileHandler(h, true)
+	h = log15.CallerFuncHandler(h)
 	h = log15.LvlFilterHandler(log15.LvlTrace, h)
 	l := log15.Get("example-logger")
 	l.SetHandler(h)

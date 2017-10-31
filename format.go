@@ -194,16 +194,7 @@ var stringBufPool = sync.Pool{
 }
 
 func escapeString(s string) string {
-	needsQuotes := false
-	needsEscape := false
-	for _, r := range s {
-		if r <= ' ' || r == '=' || r == '"' {
-			needsQuotes = true
-		}
-		if r == '\\' || r == '"' || r == '\n' || r == '\r' || r == '\t' {
-			needsEscape = true
-		}
-	}
+	needsEscape, needsQuotes := checkNeedEscape(s)
 	if !needsEscape && !needsQuotes {
 		return s
 	}
@@ -234,4 +225,19 @@ func escapeString(s string) string {
 	e.Reset()
 	stringBufPool.Put(e)
 	return ret
+}
+
+func checkNeedEscape(s string) (needsEscape bool, needsQuotes bool) {
+	for _, r := range s {
+		if r <= ' ' || r == '=' || r == '"' {
+			needsQuotes = true
+		}
+		if r == '\\' || r == '"' || r == '\n' || r == '\r' || r == '\t' {
+			needsEscape = true
+		}
+		if needsEscape && needsQuotes {
+			return
+		}
+	}
+	return
 }

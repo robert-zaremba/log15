@@ -52,7 +52,7 @@ func shortFilename(filename string) string {
 // the context with key "fn".
 func CallerFuncHandler(h Handler) Handler {
 	return FuncHandler(func(r *Record) error {
-		r.Ctx = append(r.Ctx, "fn", fmt.Sprintf("%+n", r.Call))
+		r.Ctx = append(r.Ctx, "fn", fmt.Sprintf("%+n", r.Call)) // r.Call has a custom formatter
 		return h.Log(r)
 	})
 }
