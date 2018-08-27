@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"bitbucket.org/sweetbridge/oracles/go-lib/log"
 	"github.com/robert-zaremba/log15"
 	"github.com/robert-zaremba/log15/rollbar"
 )
@@ -43,7 +42,7 @@ type Config struct {
 // Check validates the config content
 func (c *Config) Check() error {
 	if _, ok := timeFMT[c.TimeFmt]; !ok {
-		return errors.New("Wrong timeFmt value, should be one of log.timeFMT values")
+		return errors.New("Wrong timeFmt value, should be one of log15setup.timeFMT values")
 	}
 	var err error
 	c.lvl, err = log15.LvlFromString(c.Level)
@@ -87,13 +86,13 @@ func New(name string, c Config, rc rollbar.Config) (log15.Logger, error) {
 func MustLogger(envName, appname, version, rollbartoken, timeFmt, level string, colored bool) {
 	MustAppName(envName, "environment name")
 	MustAppName(appname, "application name")
-	appname = envName + "-" + appname
+	appname = envName + ":" + appname
 	rc := rollbar.Config{
 		Version: version,
 		Env:     appname,
 		Token:   rollbartoken}
-	// it's OK. Logger is a pointer, so we don't need to overwrite the global object
-	_, err := New(log.RootName,
+	// we don't need to overwrite the global object
+	root, err := New(appname,
 		Config{Color: colored, TimeFmt: timeFmt, Level: level}, rc)
 	if err != nil {
 		root.Fatal("Can't initialize logger", err)
