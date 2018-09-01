@@ -17,7 +17,7 @@ func main() {
 	log15.Error("page accessed", "path", "/a/bbb/c")
 	log15.Crit("page accessed", "path", "/a/bbb/c")
 
-	f := log15.TerminalFormat{WithColor: true, TimeFmt: " 01-02 15:04:05 "}
+	f := log15.TerminalFormat{WithColor: true, TimeFmt: " 01-02 15:04:05 ", Name: "myapp"}
 	h := log15.StreamHandler(os.Stderr, f)
 	h = log15.SyncHandler(h)
 	h = log15.CallerFileHandler(h, true)

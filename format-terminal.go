@@ -17,6 +17,7 @@ const termMsgJust = 46
 type TerminalFormat struct {
 	WithColor bool
 	TimeFmt   string
+	Name      string
 }
 
 func (tf TerminalFormat) timeStr(r *Record) string {
@@ -58,9 +59,9 @@ func (tf TerminalFormat) Format(r *Record) []byte {
 	t := tf.timeStr(r)
 	caller := findCaller(r.Ctx)
 	if color > 0 {
-		fmt.Fprint(b, tty.AnsiEscapeS(color, lvl), t, caller, "] ", r.Msg, "  ")
+		fmt.Fprint(b, tty.AnsiEscapeS(color, lvl), " ", tf.Name, t, caller, "] ", r.Msg, "  ")
 	} else {
-		fmt.Fprint(b, lvl, t, caller, "] ", r.Msg)
+		fmt.Fprint(b, lvl, " ", tf.Name, t, caller, "] ", r.Msg)
 	}
 
 	// try to justify the log output for short messages

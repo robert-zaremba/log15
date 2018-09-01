@@ -9,15 +9,7 @@ import (
 	"github.com/robert-zaremba/log15/rollbar"
 )
 
-// RootName is the default logger name
-const RootName = "root"
-
-var root = log15.Get(RootName)
-
-// Root returns the default logger
-func Root() log15.Logger {
-	return root
-}
+var root = log15.Root()
 
 // timeFMT is the map of predefined time formats for TerminalFmt
 var timeFMT = map[string]string{
@@ -57,7 +49,7 @@ func New(name string, c Config, rc rollbar.Config) (log15.Logger, error) {
 		return nil, err
 	}
 
-	f := log15.TerminalFormat{WithColor: c.Color, TimeFmt: timeFMT[c.TimeFmt]}
+	f := log15.TerminalFormat{WithColor: c.Color, TimeFmt: timeFMT[c.TimeFmt], Name: name}
 	h := log15.StreamHandler(os.Stderr, f)
 	h = log15.SyncHandler(h)
 	stderrHandler := h
@@ -73,12 +65,12 @@ func New(name string, c Config, rc rollbar.Config) (log15.Logger, error) {
 	}
 	h = log15.CallerFileHandler(h, true)
 	h = log15.LvlFilterHandler(c.lvl, h)
-	l := log15.Get(name)
-	l.SetHandler(h)
+	// l := log15.Get(name)
+	root.SetHandler(h)
 	if rc.Token == "" {
-		l.Info("Rollbar token not set. Disabling rollbar integration.")
+		root.Info("Rollbar token not set. Disabling rollbar integration.")
 	}
-	return l, nil
+	return root, nil
 }
 
 // MustLogger setups logger. It panics when the provided configuration is malformed.
@@ -89,10 +81,10 @@ func MustLogger(envName, appname, version, rollbartoken, timeFmt, level string, 
 	appname = envName + ":" + appname
 	rc := rollbar.Config{
 		Version: version,
-		Env:     appname,
+		Env:     envName,
 		Token:   rollbartoken}
 	// we don't need to overwrite the global object
-	root, err := New(appname,
+	_, err := New(appname,
 		Config{Color: colored, TimeFmt: timeFmt, Level: level}, rc)
 	if err != nil {
 		root.Fatal("Can't initialize logger", err)

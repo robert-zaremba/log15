@@ -17,12 +17,12 @@ var (
 func init() {
 	if term.IsTty(os.Stdout.Fd()) {
 		StdoutHandler = StreamHandler(colorable.NewColorableStdout(),
-			TerminalFormat{true, termTimeFormat})
+			TerminalFormat{true, termTimeFormat, ""})
 	}
 
 	if term.IsTty(os.Stderr.Fd()) {
 		StderrHandler = StreamHandler(colorable.NewColorableStderr(),
-			TerminalFormat{true, termTimeFormat})
+			TerminalFormat{true, termTimeFormat, ""})
 	}
 
 	root = &logger{[]interface{}{}, new(swapHandler)}
