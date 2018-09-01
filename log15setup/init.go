@@ -41,9 +41,9 @@ func (c *Config) Check() error {
 	return err
 }
 
-// New constructs logger and registers it in the log15 repository.
+// Configure setups the root logger.
 // If the logger `name` is already registered then it's upgraded according to given config.
-func New(name string, c Config, rc rollbar.Config) (log15.Logger, error) {
+func Configure(name string, c Config, rc rollbar.Config) (log15.Logger, error) {
 	err := c.Check()
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func MustLogger(envName, appname, version, rollbartoken, timeFmt, level string, 
 		Env:     envName,
 		Token:   rollbartoken}
 	// we don't need to overwrite the global object
-	_, err := New(appname,
+	_, err := Configure(appname,
 		Config{Color: colored, TimeFmt: timeFmt, Level: level}, rc)
 	if err != nil {
 		root.Fatal("Can't initialize logger", err)
