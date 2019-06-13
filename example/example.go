@@ -44,7 +44,7 @@ func sampleLogs(l log15.Logger) {
 	l.Error("Simple error", err, "key1", 123)
 	failMe(l)
 
-	errA := errstack.WrapAsInf(err, "I can't handle this setup")
+	errA := errstack.WrapAsDomain(err, "I can't handle this setup")
 	l.Error("Here we have an infrastructure error", errA)
 	l.Crit("And now Critical goes", log15.Spew(v), fmt.Errorf("this is error %d", 1), err)
 }
